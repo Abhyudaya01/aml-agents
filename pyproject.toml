@@ -5,6 +5,8 @@ description = "Agentic anti-money-laundering system: alerts, triage, investigati
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
+    "duckdb>=2.0.0",
+    "faker>=40.43.0",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
 ]
