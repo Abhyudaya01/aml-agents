@@ -1,0 +1,13 @@
+# Data and secrets
+data/raw/*
+!data/raw/.gitkeep
+.env
+*.duckdb
+*.sqlite
+
+# Python
+.venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
