@@ -4,6 +4,7 @@ data/raw/*
 .env
 *.duckdb
 *.sqlite
+artifacts/*.joblib
 
 # Python
 .venv/

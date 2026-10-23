@@ -1,0 +1,11 @@
+{
+  "fan_in_min_cp": 7.0,
+  "fan_out_min_cp": null,
+  "structuring_min_count": null,
+  "velocity_min_24h": 23.0,
+  "velocity_min_burst": null,
+  "pass_through_min_count": 14.0,
+  "alert_threshold": 0.39986509602203113,
+  "budget_per_1k_windows": 10.0,
+  "tuned_on": "train"
+}

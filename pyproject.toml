@@ -9,6 +9,7 @@ dependencies = [
     "faker>=40.43.0",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
+    "scikit-learn>=1.9.1",
 ]
 
 [dependency-groups]

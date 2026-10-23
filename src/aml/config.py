@@ -28,6 +28,17 @@ class Settings(BaseSettings):
     train_test_split_date: date = date(2022, 9, 8)
     customer_seed: int = 42
 
+    artifacts_dir: Path = Path("artifacts")
+    alert_budget_per_1k_windows: float = 10.0
+
+    @property
+    def thresholds_path(self) -> Path:
+        return self.artifacts_dir / "thresholds.json"
+
+    @property
+    def anomaly_model_path(self) -> Path:
+        return self.artifacts_dir / "isolation_forest.joblib"
+
     @property
     def transactions_path(self) -> Path:
         return self.raw_data_dir / self.transactions_file
