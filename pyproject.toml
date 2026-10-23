@@ -5,8 +5,11 @@ description = "Agentic anti-money-laundering system: alerts, triage, investigati
 readme = "README.md"
 requires-python = ">=3.11,<3.12"
 dependencies = [
+    "anthropic>=2.2.0",
     "duckdb>=2.0.0",
     "faker>=40.43.0",
+    "langchain-aws>=1.9.0",
+    "openai>=3.37.0",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "scikit-learn>=1.9.1",

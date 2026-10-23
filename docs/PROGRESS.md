@@ -157,3 +157,31 @@ Tuning: 51 trials over 412,145 train windows (4,064 positive); train recall 7.3%
 | FAN_IN | 1,366 | 10.5% |
 | PASS_THROUGH | 15 | 93.3% |
 <!-- alerts-report:end -->
+
+## Phase 3: LLM, PII and audit infrastructure
+
+**Built**
+- `aml.llm.providers`: a `Provider` interface that returns raw JSON text. `generate_structured` validates it against the pydantic schema and retries with the validation errors fed back (`AML_LLM_MAX_RETRIES=2`). Usage, latency and cost add up across attempts, failed ones included.
+  - `FakeLLM`: scripted responses (JSON, pydantic objects, or callables), records every prompt it receives, and counts tokens deterministically.
+  - `AnthropicProvider`: `beta.messages.parse(output_format=Schema)` with `output_config.effort` and server-side refusal fallbacks (`fallbacks="default"`). The raw body is read so that a failed validation keeps its usage. A final `refusal` raises `LLMRefusalError`.
+  - `OpenAIProvider`: `responses.parse(text_format=Schema)`.
+  - `BedrockProvider`: `ChatBedrockConverse.with_structured_output(include_raw=True)`.
+- `aml.llm.pricing` + `config.DEFAULT_LLM_PRICES`: Anthropic list prices (Opus 5.5 at $4/$20 per MTok, etc.). Other models need `AML_LLM_PRICE_OVERRIDES`; building a gateway for an unpriced model fails rather than logging $0.
+- `aml.pii`: a SQLite vault with stable per-kind tokens (`CUST_0001`, `ADDR_`, `DOB_`, `ACCT_`).
+  - `PIIMasker.mask(obj)` masks by key name first (name, address, date_of_birth, `*account*` string values). It then runs a free-text pass over every string, replacing values it has already tokenized plus anything shaped like an HI-Small account ID.
+  - `unmask(text)` swaps tokens back.
+  - `PIIDetector` is an exact-match safety net over known raw values (e.g. the customers table).
+- `aml.audit`: an append-only SQLite `events` table in which `hash = sha256(canonical fields + prev_hash)`. Triggers reject UPDATE and DELETE. `verify_chain()` reports the first bad `seq` and the reason. Helpers `record_tool_call` and `record_human_decision` are ready for Phase 4.
+- `aml.llm.gateway.LLMGateway`: mask → render → PII check → provider → audit. Blocked, failed and successful calls each write exactly one event. The logged prompt and response are the masked text; the output stays tokenized.
+- `aml.llm.factory.make_gateway(settings, ...)` is the only non-test code that constructs providers.
+
+**Enforcement**
+- `tests/test_llm_boundary.py` fails if `aml/agents`, `aml/tools`, `aml/validate` or `graph.py` import `aml.llm.providers` or an LLM SDK, touch `._provider`, or call `unmask(`.
+- The raw-PII test passes seeded customers through the gateway. A mutation check (masking and detector disabled by monkeypatch) confirmed it fails on the first raw name.
+
+**Open issues**
+- Python can't fully stop deliberate bypasses at runtime. The boundary is enforced by structure, a static scan, and the gateway's own PII check.
+- The free-text pass only catches PII values the masker has already seen. Raw values under unexpected keys rely on `PIIDetector`, which is only as complete as the value set it's given.
+- Audit-log truncation (deleting the newest rows) isn't detectable from the chain alone. Phase 4 should anchor the head hash in the case record.
+- Anthropic cache reads and writes are counted at the full input price, which overstates cost when caching is used.
+- The Anthropic, OpenAI and Bedrock providers are tested against stub clients only (Anthropic request and response handling). They haven't been run against live APIs yet.
